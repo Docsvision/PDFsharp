@@ -1,10 +1,6 @@
 ﻿# Downloads assets.
 
 # This file downloads assets required to compile the PDFsharp/MigraDoc source codes.
-# This file runs under PowerShell Core 7.0 or higher.
-
-#Requires -Version 7
-#Requires -PSEdition Core
 
 # Get-ChildItem .\ -include bin,obj -Recurse | ForEach-Object ($_) { remove-item $_.fullname -Force -Recurse }
 
