@@ -8,24 +8,24 @@ namespace PdfSharp.Pdf.Advanced
     /// </summary>
     public sealed class PdfResources : PdfDictionary
     {
-        // Resource management works roughly like this:
-        // When the user creates an XFont and uses it in the XGraphics of a PdfPage, then at the first time
-        // a PdfFont is created and cached in the document global font table. If the user creates a new
-        // XFont object for an existing PdfFont, the PdfFont object is reused. When the PdfFont is added
-        // to the resources of a PdfPage for the first time, it is added to the page local PdfResourceMap for 
-        // fonts and automatically associated with a local resource name.
+		// Resource management works roughly like this:
+		// When the user creates an XFont and uses it in the XGraphics of a PdfPage, then at the first time
+		// a PdfFont is created and cached in the document global font table. If the user creates a new
+		// XFont object for an existing PdfFont, the PdfFont object is reused. When the PdfFont is added
+		// to the resources of a PdfPage for the first time, it is added to the page local PdfResourceMap for 
+		// fonts and automatically associated with a local resource name.
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PdfResources"/> class.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        public PdfResources(PdfDocument document)
+		/// <summary>
+		/// Initializes a new instance of the <see cref="PdfResources"/> class.
+		/// </summary>
+		/// <param name="document">The document.</param>
+		public PdfResources(PdfDocument document)
             : base(document)
         {
-            Elements[Keys.ProcSet] = new PdfLiteral("[/PDF/Text/ImageB/ImageC/ImageI]");
+			Elements[Keys.ProcSet] = new PdfLiteral("[/PDF/Text/ImageB/ImageC/ImageI]");
         }
 
-        internal PdfResources(PdfDictionary dict)
+		internal PdfResources(PdfDictionary dict)
             : base(dict)
         { }
 
@@ -45,11 +45,11 @@ namespace PdfSharp.Pdf.Advanced
             return name;
         }
 
-        /// <summary>
-        /// Adds the specified image to this resource dictionary
-        /// and returns its local resource name.
-        /// </summary>
-        public string AddImage(PdfImage image)
+		/// <summary>
+		/// Adds the specified image to this resource dictionary
+		/// and returns its local resource name.
+		/// </summary>
+		public string AddImage(PdfImage image)
         {
             if (!_resources.TryGetValue(image, out var name))
             {
@@ -147,10 +147,101 @@ namespace PdfSharp.Pdf.Advanced
             return name;
         }
 
-        /// <summary>
-        /// Gets the fonts map.
-        /// </summary>
-        internal PdfResourceMap Fonts => _fonts ??= (PdfResourceMap?)Elements.GetValue(Keys.Font, VCF.Create) ?? NRT.ThrowOnNull<PdfResourceMap>();
+        #region Work with layers (based on solition https://forum.pdfsharp.net/viewtopic.php?f=2&t=2682)
+
+        public void GetOrCreateOCG(string layerName) {
+			////Try get /OCProperties
+			PdfDictionary ocProperties = GetOrCreateOCProperties();
+
+			////Try get /OCGs
+			PdfArray oCGs = GetOrCreateArray(ocProperties, "/OCGs");
+
+			////Check if layer already exists
+			PdfDictionary existingLayer = oCGs.OfType<PdfReference>()
+				.Select(r => r.Value as PdfDictionary)
+				.FirstOrDefault(d => d != null && d.Elements.ContainsKey("/Name") && d.Elements["/Name"].ToString() == "(" + layerName + ")");
+
+			if (existingLayer != null) {
+				return;
+			}
+
+			////Create new layer
+			PdfDictionary layer = new PdfDictionary(Owner);
+			layer.Elements.Add("/Name", new PdfString(layerName));
+			layer.Elements.Add("/Type", new PdfName("/OCG"));
+
+			PdfReference prp = new PdfReference(layer);
+			prp.Document = Owner;
+
+			Owner.IrefTable.Add(layer);
+			Properties.Elements["/" + layerName] = layer.Reference;
+
+			oCGs.Elements.Add(layer);
+
+			////Try get /D
+			PdfDictionary d = GetOrCreateDDictionary(ocProperties);
+
+			////Try get /Order
+			PdfArray order = GetOrCreateArray(d, "/Order");
+			order.Elements.Add(layer);
+		}
+
+		public void TurnOffOCG(string layerName) {
+			////Try get /OCProperties
+			PdfDictionary ocProperties = GetOrCreateOCProperties();
+
+			////Try get /OCGs
+			PdfArray oCGs = GetOrCreateArray(ocProperties, "/OCGs");
+
+
+			var existingLayers = oCGs.OfType<PdfReference>()
+					.Select(r => r.Value as PdfDictionary)
+					.Where(d => d != null && d.Elements.ContainsKey("/Name") && d.Elements["/Name"].ToString() == "(" + layerName + ")");
+
+			////Try get /D
+			PdfDictionary d = GetOrCreateDDictionary(ocProperties);
+
+			////Try get /OFF
+			PdfArray off = GetOrCreateArray(d, "/OFF");
+
+			foreach (var layer in existingLayers) {
+				off.Elements.Add(layer);
+			}
+		}
+
+		private PdfDictionary GetOrCreateOCProperties() {
+			if (!Owner.Catalog.Elements.ContainsKey("/OCProperties")) {
+				var ocProperties = new PdfDictionary(Owner);
+				Owner.Catalog.Elements.Add("/OCProperties", ocProperties);
+				return ocProperties;
+			}
+			return (PdfDictionary)Owner.Catalog.Elements["/OCProperties"];
+		}
+
+		private PdfArray GetOrCreateArray(PdfDictionary parent, string key) {
+			if (!parent.Elements.ContainsKey(key)) {
+				var array = new PdfArray(Owner);
+				parent.Elements.Add(key, array);
+				return array;
+			}
+			return (PdfArray)parent.Elements[key];
+		}
+
+		private PdfDictionary GetOrCreateDDictionary(PdfDictionary ocProperties) {
+			if (!ocProperties.Elements.ContainsKey("/D")) {
+				var dDict = new PdfDictionary(Owner);
+				ocProperties.Elements.Add("/D", dDict);
+				return dDict;
+			}
+			return (PdfDictionary)ocProperties.Elements["/D"];
+		}
+
+        #endregion
+
+		/// <summary>
+		/// Gets the fonts map.
+		/// </summary>
+		internal PdfResourceMap Fonts => _fonts ??= (PdfResourceMap?)Elements.GetValue(Keys.Font, VCF.Create) ?? NRT.ThrowOnNull<PdfResourceMap>();
 
         PdfResourceMap? _fonts;
 

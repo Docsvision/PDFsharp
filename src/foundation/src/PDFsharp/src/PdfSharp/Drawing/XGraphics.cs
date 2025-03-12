@@ -72,7 +72,7 @@ namespace PdfSharp.Drawing  // #??? Clean up
     public sealed class XGraphics : IDisposable
     {
 #if CORE
-        // TODO: Implement better concept of a measure context.
+		// TODO: Implement better concept of a measure context.
 #endif
 
 #if GDI
@@ -300,10 +300,10 @@ namespace PdfSharp.Drawing  // #??? Clean up
         }
 #endif
 
-        /// <summary>
-        /// Initializes a new instance of the XGraphics class for drawing on a PDF page.
-        /// </summary>
-        XGraphics(PdfPage page, XGraphicsPdfPageOptions options, XGraphicsUnit pageUnit, XPageDirection pageDirection)
+		/// <summary>
+		/// Initializes a new instance of the XGraphics class for drawing on a PDF page.
+		/// </summary>
+		XGraphics(PdfPage page, XGraphicsPdfPageOptions options, XGraphicsUnit pageUnit, XPageDirection pageDirection)
         {
             page.Owner.EnsureNotYetSaved();
 
@@ -5016,11 +5016,11 @@ namespace PdfSharp.Drawing  // #??? Clean up
         }
         SpaceTransformer _transformer = default!;
 
-        #endregion
+		#endregion
 
-        // --------------------------------------------------------------------------------------------
+		// --------------------------------------------------------------------------------------------
 
-        #region Internal Helper Functions
+		#region Internal Helper Functions
 
 #if GDI
         /// <summary>
@@ -5162,26 +5162,37 @@ namespace PdfSharp.Drawing  // #??? Clean up
         }
 #endif
 
-        #endregion
+		#endregion
 
-        ///// <summary>
-        ///// Testcode
-        ///// </summary>
-        //public void TestXObject(PdfDocument thisDoc, PdfPage thisPage, int page,
-        //      PdfDocument externalDoc, ImportedObjectTable impDoc)
-        //{
-        //    PdfPage impPage = externalDoc.Pages[page];
-        //    //      impDoc.ImportPage(impPage);
-        //    PdfFormXObject form = new PdfFormXObject(thisDoc, impDoc, impPage);
-        //    thisDoc.xrefTable.Add(form);
 
-        //    PdfDictionary xobjects = new PdfDictionary();
-        //    xobjects.Elements["/X42"] = form.XRef;
-        //    thisPage.Resources.Elements[PdfResources.Keys.XObject] = xobjects;
-        //    ((XGraphicsPdfRenderer)renderer).DrawXObject("/X42");
-        //}
+		#region Work with layers (based on solition https://forum.pdfsharp.net/viewtopic.php?f=2&t=2682)
+		public void BeginMarkedContentPropList(string layerName) {
+			(_renderer as XGraphicsPdfRenderer).BeginMarkedContentPropList(layerName);
+		}
 
-        internal void DisassociateImage()
+		public void EndMarkedContent() {
+			(_renderer as XGraphicsPdfRenderer).EndMarkedContent();
+		}
+		#endregion
+
+		///// <summary>
+		///// Testcode
+		///// </summary>
+		//public void TestXObject(PdfDocument thisDoc, PdfPage thisPage, int page,
+		//      PdfDocument externalDoc, ImportedObjectTable impDoc)
+		//{
+		//    PdfPage impPage = externalDoc.Pages[page];
+		//    //      impDoc.ImportPage(impPage);
+		//    PdfFormXObject form = new PdfFormXObject(thisDoc, impDoc, impPage);
+		//    thisDoc.xrefTable.Add(form);
+
+		//    PdfDictionary xobjects = new PdfDictionary();
+		//    xobjects.Elements["/X42"] = form.XRef;
+		//    thisPage.Resources.Elements[PdfResources.Keys.XObject] = xobjects;
+		//    ((XGraphicsPdfRenderer)renderer).DrawXObject("/X42");
+		//}
+
+		internal void DisassociateImage()
         {
             if (_associatedImage == null)
                 throw new InvalidOperationException("No image associated.");
