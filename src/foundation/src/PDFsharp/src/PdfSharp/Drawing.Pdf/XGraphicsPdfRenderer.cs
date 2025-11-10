@@ -59,10 +59,10 @@ namespace PdfSharp.Drawing.Pdf
             _gfxState = new PdfGraphicsState(this);
         }
 
-        /// <summary>
-        /// Gets the content created by this renderer.
-        /// </summary>
-        string GetContent()
+		/// <summary>
+		/// Gets the content created by this renderer.
+		/// </summary>
+		string GetContent()
         {
             EndPage();
             return _content.ToString();
@@ -2105,7 +2105,19 @@ namespace PdfSharp.Drawing.Pdf
             return pt3;
 #endif
         }
-        #endregion
+		#endregion
+
+
+		#region Work with layers (based on solition https://forum.pdfsharp.net/viewtopic.php?f=2&t=2682)
+		public void BeginMarkedContentPropList(string layerName) {
+			_content.Append(" /OC /" + layerName + " BDC ");
+		}
+
+		public void EndMarkedContent() {
+			_content.Append(" EMC ");
+		}
+
+		#endregion
 
 #if GDI
         [Conditional("DEBUG")]
@@ -2123,7 +2135,7 @@ namespace PdfSharp.Drawing.Pdf
         }
 #endif
 #if CORE || GDI
-        [Conditional("DEBUG")]
+		[Conditional("DEBUG")]
         void DumpPathData(XPoint[] points, byte[] types)
         {
             int count = points.Length;
